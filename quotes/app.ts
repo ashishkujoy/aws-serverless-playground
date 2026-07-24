@@ -1,5 +1,5 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
-
+import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, } from 'aws-lambda';
+import { DynamoDBClient, PutItemCommand, } from '@aws-sdk/client-dynamodb';
 
 /**
  *
@@ -10,6 +10,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda
  * @returns {Object} object - API Gateway Lambda Proxy Output Format
  *
  */
+const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     if (event.httpMethod === 'GET') {
@@ -21,22 +22,68 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Contex
         };
     }
     try {
-        let bodyStr = event.body || "";
-        if (event.isBase64Encoded) {
-            bodyStr = Buffer.from(bodyStr, 'base64').toString('utf-8');
-        }
-        const body = JSON.parse(bodyStr);
+        const body = parseRequestBody(event);
+        const quote = await processCreateQuote(body);
         return {
             statusCode: 200,
-            body: JSON.stringify(body),
+            body: JSON.stringify(quote),
         };
     } catch (err) {
-        console.log(err);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: 'some error happened',
-            }),
-        };
+        return handleError(err);
     }
 };
+
+const parseRequestBody = (event: APIGatewayProxyEvent): QuoteCreationRequest => {
+    let bodyStr = event.body || "";
+    if (event.isBase64Encoded) {
+        bodyStr = Buffer.from(bodyStr, 'base64').toString('utf-8');
+    }
+    const body = JSON.parse(bodyStr);
+    return body as QuoteCreationRequest;
+}
+
+type QuoteCreationRequest = {
+    customerName: string;
+    age: number;
+    coverage: number;
+    policyType: string;
+}
+
+type Quote = QuoteCreationRequest & {
+    quoteId: string;
+    policyAmount: number;
+}
+
+const generateQuoteId = (): string => {
+    return `quote-${Date.now()}`;
+};
+
+const calculatePolicyAmount = (body: QuoteCreationRequest): number => {
+    // Implement your policy amount calculation logic here
+    return body.coverage * 0.1; // Example calculation
+};
+
+const processCreateQuote = async (body: QuoteCreationRequest) => {
+    const quote: Quote = {
+        ...body,
+        quoteId: generateQuoteId(),
+        policyAmount: calculatePolicyAmount(body),
+    };
+    const putItemCommand = new PutItemCommand({
+        TableName: process.env.QUOTES_TABLE_NAME,
+        Item: {
+            quoteId: { S: quote.quoteId },
+            quoteData: { S: JSON.stringify(quote) },
+        },
+    });
+    await dynamoDbClient.send(putItemCommand);
+    return quote;
+}
+
+const handleError = (err: unknown) => {
+    console.log(err);
+    return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'some error happened' }),
+    };
+}

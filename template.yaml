@@ -20,6 +20,16 @@ Globals:
   Api:
     TracingEnabled: true
 Resources:
+  QuotesTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: QuotesTable
+      PrimaryKey:
+        Name: quoteId
+        Type: String
+      Tags:
+        Name: QuotesTable
+
   QuotesFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -36,6 +46,13 @@ Resources:
           Properties:
             Path: /quotes
             Method: post
+      Policies: 
+        DynamoDBCrudPolicy:
+          TableName: !Ref QuotesTable
+      Environment:
+        Variables:
+          QUOTES_TABLE_NAME: !Ref QuotesTable
+          AWS_REGION: "ap-south-1"
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:

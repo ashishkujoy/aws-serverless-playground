@@ -31,6 +31,6 @@ warm_containers = "EAGER"
 
 [floci.deploy.parameters]
 stack_name = "my-app-local"
-region = "us-east-1"
+region = "ap-south-1"
 capabilities = "CAPABILITY_IAM"
 resolve_s3 = true

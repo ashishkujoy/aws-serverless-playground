@@ -3,7 +3,7 @@ import { CloudFormationClient, DescribeStackResourcesCommand } from '@aws-sdk/cl
 
 export const STACK_NAME = 'my-app-local';
 export const FLOCI_ENDPOINT = 'http://localhost:4566';
-export const FLOCI_REGION = 'us-east-1';
+export const FLOCI_REGION = 'ap-south-1';
 export const FLOCI_CONTAINER_NAME = 'floci';
 
 const FLOCI_HEALTH_TIMEOUT_MS = 30_000;

@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-cloudformation": "^3.600.0",
+    "@aws-sdk/client-dynamodb": "^3.600.0",
     "@jest/globals": "^29.2.0",
     "@types/jest": "^29.2.0",
     "@types/node": "^20.5.7",
