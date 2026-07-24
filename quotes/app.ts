@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, } from 'aws-lambda';
-import { DynamoDBClient, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 /**
  *
@@ -11,6 +12,7 @@ import { DynamoDBClient, PutItemCommand, GetItemCommand } from '@aws-sdk/client-
  *
  */
 const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+const docClient = DynamoDBDocumentClient.from(dynamoDbClient);
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     if (event.httpMethod === 'GET') {
@@ -44,15 +46,15 @@ const handleGetQuote = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 };
 
 const getQuoteById = async (quoteId: string): Promise<Quote | null> => {
-    const command = new GetItemCommand({
+    const command = new GetCommand({
         TableName: process.env.QUOTES_TABLE_NAME,
-        Key: { quoteId: { S: quoteId } },
+        Key: { quoteId },
     });
-    const result = await dynamoDbClient.send(command);
+    const result = await docClient.send(command);
     if (!result.Item) {
         return null;
     }
-    const quoteData = JSON.parse(result.Item.quoteData.S as string);
+    const quoteData = JSON.parse(result.Item.quoteData);
     return quoteData as Quote;
 };
 
@@ -92,14 +94,14 @@ const processCreateQuote = async (body: QuoteCreationRequest) => {
         quoteId: generateQuoteId(),
         policyAmount: calculatePolicyAmount(body),
     };
-    const putItemCommand = new PutItemCommand({
+    const putCommand = new PutCommand({
         TableName: process.env.QUOTES_TABLE_NAME,
         Item: {
-            quoteId: { S: quote.quoteId },
-            quoteData: { S: JSON.stringify(quote) },
+            quoteId: quote.quoteId,
+            quoteData: JSON.stringify(quote),
         },
     });
-    await dynamoDbClient.send(putItemCommand);
+    await docClient.send(putCommand);
     return quote;
 }
 
