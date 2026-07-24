@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, } from 'aws-lambda';
-import { DynamoDBClient, PutItemCommand, } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, PutItemCommand, GetItemCommand } from '@aws-sdk/client-dynamodb';
 
 /**
  *
@@ -14,12 +14,7 @@ const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
     if (event.httpMethod === 'GET') {
-        return {
-            statusCode: 200,
-            body: JSON.stringify({
-                message: 'hello world',
-            }),
-        };
+        return handleGetQuote(event);
     }
     try {
         const body = parseRequestBody(event);
@@ -31,6 +26,34 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Contex
     } catch (err) {
         return handleError(err);
     }
+};
+
+const handleGetQuote = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const quoteId = event.pathParameters?.quoteId;
+    if (!quoteId) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Missing quoteId in path parameters' }),
+        };
+    }
+    const quote = await getQuoteById(quoteId);
+    return {
+        statusCode: 200,
+        body: JSON.stringify(quote),
+    };
+};
+
+const getQuoteById = async (quoteId: string): Promise<Quote | null> => {
+    const command = new GetItemCommand({
+        TableName: process.env.QUOTES_TABLE_NAME,
+        Key: { quoteId: { S: quoteId } },
+    });
+    const result = await dynamoDbClient.send(command);
+    if (!result.Item) {
+        return null;
+    }
+    const quoteData = JSON.parse(result.Item.quoteData.S as string);
+    return quoteData as Quote;
 };
 
 const parseRequestBody = (event: APIGatewayProxyEvent): QuoteCreationRequest => {

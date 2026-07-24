@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { FLOCI_ENDPOINT, FLOCI_REGION } from '../../shared/stack';
 
 describe('Quotes API (floci integration)', () => {
@@ -27,11 +27,33 @@ describe('Quotes API (floci integration)', () => {
     });
 
     it('GET /quotes/{quoteId} returns hello world', async () => {
+        const putCommand = new PutItemCommand({
+            TableName: quotesTableName,
+            Item: {
+                quoteId: { S: '123' },
+                quoteData: { S: JSON.stringify({ 
+                    quoteId: '123',
+                    customerName: 'John Doe',
+                    age: 30,
+                    coverage: 100000,
+                    policyType: 'auto',
+                    policyAmount: 10000,
+                 }) },
+            },
+        });
+        await dynamoDbClient.send(putCommand);
         const response = await fetch(`${baseUrl}/quotes/123`);
         const body = await response.json();
 
         expect(response.status).toEqual(200);
-        expect(body).toEqual({ message: 'hello world' });
+        expect(body).toEqual({
+            quoteId: '123',
+            customerName: 'John Doe',
+            age: 30,
+            coverage: 100000,
+            policyType: 'auto',
+            policyAmount: 10000,
+        });
     });
 
     it('POST /quotes creates a new quote', async () => {
