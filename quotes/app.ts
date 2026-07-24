@@ -54,8 +54,7 @@ const getQuoteById = async (quoteId: string): Promise<Quote | null> => {
     if (!result.Item) {
         return null;
     }
-    const quoteData = JSON.parse(result.Item.quoteData);
-    return quoteData as Quote;
+    return result.Item as Quote;
 };
 
 const parseRequestBody = (event: APIGatewayProxyEvent): QuoteCreationRequest => {
@@ -96,10 +95,7 @@ const processCreateQuote = async (body: QuoteCreationRequest) => {
     };
     const putCommand = new PutCommand({
         TableName: process.env.QUOTES_TABLE_NAME,
-        Item: {
-            quoteId: quote.quoteId,
-            quoteData: JSON.stringify(quote),
-        },
+        Item: quote,
     });
     await docClient.send(putCommand);
     return quote;

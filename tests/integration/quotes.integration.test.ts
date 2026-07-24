@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { DynamoDBClient, GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { FLOCI_ENDPOINT, FLOCI_REGION } from '../../shared/stack';
 
 describe('Quotes API (floci integration)', () => {
     let baseUrl: string;
     let quotesTableName: string;
-    let dynamoDbClient: DynamoDBClient;
+    let docClient: DynamoDBDocumentClient;
 
     beforeAll(() => {
         baseUrl = process.env.API_BASE_URL as string;
@@ -16,32 +17,29 @@ describe('Quotes API (floci integration)', () => {
         if (!quotesTableName) {
             throw new Error('QUOTES_TABLE_NAME was not set by globalSetup');
         }
-        dynamoDbClient = new DynamoDBClient({
+        docClient = DynamoDBDocumentClient.from(new DynamoDBClient({
             endpoint: FLOCI_ENDPOINT,
             region: FLOCI_REGION,
             credentials: {
                 accessKeyId: 'test',
                 secretAccessKey: 'test',
             },
-        });
+        }));
     });
 
     it('GET /quotes/{quoteId} returns hello world', async () => {
-        const putCommand = new PutItemCommand({
+        const putCommand = new PutCommand({
             TableName: quotesTableName,
             Item: {
-                quoteId: { S: '123' },
-                quoteData: { S: JSON.stringify({ 
-                    quoteId: '123',
-                    customerName: 'John Doe',
-                    age: 30,
-                    coverage: 100000,
-                    policyType: 'auto',
-                    policyAmount: 10000,
-                 }) },
+                quoteId: '123',
+                customerName: 'John Doe',
+                age: 30,
+                coverage: 100000,
+                policyType: 'auto',
+                policyAmount: 10000,
             },
         });
-        await dynamoDbClient.send(putCommand);
+        await docClient.send(putCommand);
         const response = await fetch(`${baseUrl}/quotes/123`);
         const body = await response.json();
 
@@ -68,15 +66,14 @@ describe('Quotes API (floci integration)', () => {
         expect(response.status).toEqual(200);
         expect(body).toMatchObject(payload);
 
-        const { Item } = await dynamoDbClient.send(
-            new GetItemCommand({
+        const { Item } = await docClient.send(
+            new GetCommand({
                 TableName: quotesTableName,
-                Key: { quoteId: { S: body.quoteId } },
+                Key: { quoteId: body.quoteId },
             }),
         );
 
-        expect(Item).toBeDefined();
-        expect(JSON.parse(Item?.quoteData.S as string)).toEqual(body);
+        expect(Item).toEqual(body);
     });
 
     it('POST /quotes with invalid JSON returns 500', async () => {
