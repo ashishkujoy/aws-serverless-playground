@@ -52,7 +52,6 @@ Resources:
       Environment:
         Variables:
           QUOTES_TABLE_NAME: !Ref QuotesTable
-          AWS_REGION: "ap-south-1"
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
