@@ -23,7 +23,7 @@ Resources:
   QuotesTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: QuotesTable
+      TableName: !Sub '${AWS::StackName}-QuotesTable'
       PrimaryKey:
         Name: quoteId
         Type: String
@@ -46,9 +46,14 @@ Resources:
           Properties:
             Path: /quotes
             Method: post
-      Policies: 
-        DynamoDBCrudPolicy:
-          TableName: !Ref QuotesTable
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt QuotesTable.Arn
       Environment:
         Variables:
           QUOTES_TABLE_NAME: !Ref QuotesTable

@@ -96,3 +96,14 @@ export const getApiBaseUrl = async (stackName: string = STACK_NAME): Promise<str
     }
     return `${FLOCI_ENDPOINT}/restapis/${restApi.PhysicalResourceId}/Prod/_user_request_`;
 };
+
+export const getQuotesTableName = async (stackName: string = STACK_NAME): Promise<string> => {
+    const { StackResources } = await cloudFormationClient.send(
+        new DescribeStackResourcesCommand({ StackName: stackName }),
+    );
+    const quotesTable = StackResources?.find((resource) => resource.LogicalResourceId === 'QuotesTable');
+    if (!quotesTable?.PhysicalResourceId) {
+        throw new Error(`Could not find the QuotesTable resource in stack "${stackName}"`);
+    }
+    return quotesTable.PhysicalResourceId;
+};

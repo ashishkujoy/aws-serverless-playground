@@ -1,4 +1,4 @@
-import { ensureFlociRunning, startFloci, buildStack, deployStack, getApiBaseUrl, STACK_NAME } from '../../../shared/stack';
+import { ensureFlociRunning, startFloci, buildStack, deployStack, getApiBaseUrl, getQuotesTableName, STACK_NAME } from '../../../shared/stack';
 
 export default async function globalSetup(): Promise<void> {
     if (process.env.SKIP_DEPLOY === 'true') {
@@ -22,5 +22,5 @@ export default async function globalSetup(): Promise<void> {
     console.log(`[integration] API base URL: ${apiBaseUrl}`);
     process.env.API_BASE_URL = apiBaseUrl;
     process.env.AWS_REGION = 'ap-south-1';
-    process.env.QUOTES_TABLE_NAME = 'QuotesTable';
+    process.env.QUOTES_TABLE_NAME = await getQuotesTableName(STACK_NAME);
 }
