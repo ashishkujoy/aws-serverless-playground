@@ -15,7 +15,8 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1094.0",
     "@aws-sdk/lib-dynamodb": "^3.1094.0",
-    "esbuild": "^0.14.14"
+    "esbuild": "^0.14.14",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@jest/globals": "^29.2.0",

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { z } from 'zod';
 
 /**
  *
@@ -64,15 +65,17 @@ const parseRequestBody = (event: APIGatewayProxyEvent): QuoteCreationRequest => 
         bodyStr = Buffer.from(bodyStr, 'base64').toString('utf-8');
     }
     const body = JSON.parse(bodyStr);
-    return body as QuoteCreationRequest;
+    return QuoteCreationRequestSchema.parse(body);
 }
 
-type QuoteCreationRequest = {
-    customerName: string;
-    age: number;
-    coverage: number;
-    policyType: string;
-}
+const QuoteCreationRequestSchema = z.object({
+    customerName: z.string().min(1),
+    age: z.number().int().positive(),
+    coverage: z.number().positive(),
+    policyType: z.string().min(1),
+});
+
+type QuoteCreationRequest = z.infer<typeof QuoteCreationRequestSchema>;
 
 type Quote = QuoteCreationRequest & {
     quoteId: string;
@@ -104,6 +107,12 @@ const processCreateQuote = async (body: QuoteCreationRequest) => {
 }
 
 const handleError = (err: unknown) => {
+    if (err instanceof z.ZodError) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Invalid request body', errors: err.issues }),
+        };
+    }
     console.log(err);
     return {
         statusCode: 500,

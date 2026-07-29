@@ -87,4 +87,17 @@ describe('Quotes API (floci integration)', () => {
         expect(response.status).toEqual(500);
         expect(body).toEqual({ message: 'some error happened' });
     });
+
+    it('POST /quotes with a schema-invalid payload returns 400', async () => {
+        const payload = { customerName: 'John Doe', age: -5, coverage: 100000, policyType: 'auto' };
+        const response = await fetch(`${baseUrl}/quotes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const body = await response.json();
+
+        expect(response.status).toEqual(400);
+        expect(body.message).toEqual('Invalid request body');
+    });
 });
