@@ -5,6 +5,16 @@ Description: >
 
   Sample SAM Template for insurance
 
+Parameters:
+  PowertoolsTraceEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: >
+      Set to 'false' for local emulators (e.g. floci/LocalStack) that don't
+      provide real X-Ray trace context, to silence Powertools Tracer's
+      "Missing AWS Lambda trace data" errors on every AWS SDK call.
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -57,6 +67,9 @@ Resources:
       Environment:
         Variables:
           QUOTES_TABLE_NAME: !Ref QuotesTable
+          POWERTOOLS_SERVICE_NAME: quotes
+          POWERTOOLS_LOG_LEVEL: INFO
+          POWERTOOLS_TRACE_ENABLED: !Ref PowertoolsTraceEnabled
     Metadata: # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:

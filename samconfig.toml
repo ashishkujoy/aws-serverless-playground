@@ -34,3 +34,4 @@ stack_name = "my-app-local"
 region = "ap-south-1"
 capabilities = "CAPABILITY_IAM"
 resolve_s3 = true
+parameter_overrides = "PowertoolsTraceEnabled=false"

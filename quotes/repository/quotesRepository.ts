@@ -1,8 +1,9 @@
 import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { Quote, QuoteAlreadyExistsError } from '../domain/quote';
+import { tracer } from '../observability';
 
-const dynamoDbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+const dynamoDbClient = tracer.captureAWSv3Client(new DynamoDBClient({ region: process.env.AWS_REGION }));
 const docClient = DynamoDBDocumentClient.from(dynamoDbClient);
 
 export const saveQuote = async (quote: Quote): Promise<void> => {

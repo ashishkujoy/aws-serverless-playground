@@ -2,6 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, } from 'aws-lambd
 import { z } from 'zod';
 import { createQuote, QuoteAlreadyExistsError, QuoteCreationRequestSchema } from './domain/quote';
 import { getQuoteById, saveQuote } from './repository/quotesRepository';
+import { logger } from './observability';
 
 /**
  *
@@ -13,13 +14,16 @@ import { getQuoteById, saveQuote } from './repository/quotesRepository';
  *
  */
 export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
-    if (event.httpMethod === 'GET') {
-        return handleGetQuote(event);
-    }
+    logger.addContext(context);
+    logger.info('Handling request', { httpMethod: event.httpMethod, path: event.path });
     try {
+        if (event.httpMethod === 'GET') {
+            return await handleGetQuote(event);
+        }
         const requestBody = QuoteCreationRequestSchema.parse(parseJsonBody(event));
         const quote = createQuote(requestBody);
         await saveQuote(quote);
+        logger.info('Quote created', { quoteId: quote.quoteId });
         return {
             statusCode: 200,
             body: JSON.stringify(quote),
@@ -38,6 +42,7 @@ const handleGetQuote = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         };
     }
     const quote = await getQuoteById(quoteId);
+    logger.info(quote ? 'Quote retrieved' : 'Quote not found', { quoteId });
     return {
         statusCode: 200,
         body: JSON.stringify(quote),
@@ -52,26 +57,30 @@ const parseJsonBody = (event: APIGatewayProxyEvent): unknown => {
     return JSON.parse(bodyStr);
 }
 
-const handleError = (err: unknown) => {
+const handleError = (err: unknown): APIGatewayProxyResult => {
     if (err instanceof z.ZodError) {
+        logger.warn('Invalid request body', { issues: err.issues });
         return {
             statusCode: 400,
             body: JSON.stringify({ message: 'Invalid request body', errors: err.issues }),
         };
     }
     if (err instanceof SyntaxError) {
+        logger.warn('Malformed JSON in request body');
         return {
             statusCode: 400,
             body: JSON.stringify({ message: 'Malformed JSON in request body' }),
         };
     }
     if (err instanceof QuoteAlreadyExistsError) {
+        logger.warn(err.message);
         return {
             statusCode: 409,
             body: JSON.stringify({ message: err.message }),
         };
     }
 
+    logger.error('Unhandled error while processing request', err as Error);
     return {
         statusCode: 500,
         body: JSON.stringify({ message: 'some error happened' }),

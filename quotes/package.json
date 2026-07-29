@@ -13,6 +13,8 @@
     "test": "npm run compile && npm run unit"
   },
   "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.34.0",
+    "@aws-lambda-powertools/tracer": "^2.34.0",
     "@aws-sdk/client-dynamodb": "^3.1094.0",
     "@aws-sdk/lib-dynamodb": "^3.1094.0",
     "esbuild": "^0.14.14",
