@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context, } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
@@ -79,7 +80,7 @@ type Quote = QuoteCreationRequest & {
 }
 
 const generateQuoteId = (): string => {
-    return `quote-${Date.now()}`;
+    return `quote-${randomUUID()}`;
 };
 
 const calculatePolicyAmount = (body: QuoteCreationRequest): number => {
@@ -96,6 +97,7 @@ const processCreateQuote = async (body: QuoteCreationRequest) => {
     const putCommand = new PutCommand({
         TableName: process.env.QUOTES_TABLE_NAME,
         Item: quote,
+        ConditionExpression: 'attribute_not_exists(quoteId)',
     });
     await docClient.send(putCommand);
     return quote;
