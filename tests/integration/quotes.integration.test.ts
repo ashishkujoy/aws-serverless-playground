@@ -76,7 +76,7 @@ describe('Quotes API (floci integration)', () => {
         expect(Item).toEqual(body);
     });
 
-    it('POST /quotes with invalid JSON returns 500', async () => {
+    it('POST /quotes with invalid JSON returns 400', async () => {
         const response = await fetch(`${baseUrl}/quotes`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -84,8 +84,8 @@ describe('Quotes API (floci integration)', () => {
         });
         const body = await response.json();
 
-        expect(response.status).toEqual(500);
-        expect(body).toEqual({ message: 'some error happened' });
+        expect(response.status).toEqual(400);
+        expect(body).toEqual({ message: 'Malformed JSON in request body' });
     });
 
     it('POST /quotes with a schema-invalid payload returns 400', async () => {
