@@ -30,6 +30,32 @@ Globals:
   Api:
     TracingEnabled: true
 Resources:
+  InsuranceUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-InsuranceUserPool'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+
+  InsuranceUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${AWS::StackName}-InsuranceUserPoolClient'
+      UserPoolId: !Ref InsuranceUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
   QuotesTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
@@ -92,3 +118,9 @@ Outputs:
   QuotesFunctionIamRole:
     Description: Implicit IAM Role created for Quotes function
     Value: !GetAtt QuotesFunctionRole.Arn
+  UserPoolId:
+    Description: Cognito User Pool ID for the insurance app
+    Value: !Ref InsuranceUserPool
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID for the insurance app
+    Value: !Ref InsuranceUserPoolClient
