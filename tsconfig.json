@@ -11,5 +11,5 @@
     "types": ["node", "jest"]
   },
   "include": ["shared/**/*.ts", "tests/**/*.ts", "jest.integration.config.ts"],
-  "exclude": ["node_modules", "quotes"]
+  "exclude": ["node_modules", "quotes", "auth"]
 }
