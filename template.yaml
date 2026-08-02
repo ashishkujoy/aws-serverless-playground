@@ -116,6 +116,11 @@ Resources:
           Properties:
             Path: /auth/signup
             Method: post
+        AuthLoginEvent:
+          Type: Api
+          Properties:
+            Path: /auth/login
+            Method: post
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -123,10 +128,12 @@ Resources:
               Action:
                 - cognito-idp:AdminCreateUser
                 - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminInitiateAuth
               Resource: !GetAtt InsuranceUserPool.Arn
       Environment:
         Variables:
           USER_POOL_ID: !Ref InsuranceUserPool
+          USER_POOL_CLIENT_ID: !Ref InsuranceUserPoolClient
           POWERTOOLS_SERVICE_NAME: auth
           POWERTOOLS_LOG_LEVEL: INFO
           POWERTOOLS_TRACE_ENABLED: !Ref PowertoolsTraceEnabled

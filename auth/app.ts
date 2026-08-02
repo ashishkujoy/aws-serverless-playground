@@ -1,7 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
 import { z } from 'zod';
-import { SignupRequestSchema, UserAlreadyExistsError } from './domain/authUser';
-import { signUp } from './repository/authRepository';
+import {
+    InvalidCredentialsError,
+    LoginRequestSchema,
+    SignupRequestSchema,
+    UserAlreadyExistsError,
+} from './domain/authUser';
+import { login, signUp } from './repository/authRepository';
 import { logger } from './observability';
 
 export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
@@ -10,6 +15,9 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent, context: Contex
     try {
         if (event.httpMethod === 'POST' && event.path === '/auth/signup') {
             return await handleSignup(event);
+        }
+        if (event.httpMethod === 'POST' && event.path === '/auth/login') {
+            return await handleLogin(event);
         }
         return {
             statusCode: 404,
@@ -27,6 +35,16 @@ const handleSignup = async (event: APIGatewayProxyEvent): Promise<APIGatewayProx
     return {
         statusCode: 201,
         body: JSON.stringify({ email: requestBody.email }),
+    };
+};
+
+const handleLogin = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const requestBody = LoginRequestSchema.parse(parseJsonBody(event));
+    const result = await login(requestBody);
+    logger.info('User logged in', { email: requestBody.email });
+    return {
+        statusCode: 200,
+        body: JSON.stringify(result),
     };
 };
 
@@ -57,6 +75,13 @@ const handleError = (err: unknown): APIGatewayProxyResult => {
         logger.warn(err.message);
         return {
             statusCode: 409,
+            body: JSON.stringify({ message: err.message }),
+        };
+    }
+    if (err instanceof InvalidCredentialsError) {
+        logger.warn(err.message);
+        return {
+            statusCode: 401,
             body: JSON.stringify({ message: err.message }),
         };
     }
