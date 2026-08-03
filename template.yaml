@@ -1,19 +1,18 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
+Description: |
   insurance
-
   Sample SAM Template for insurance
 
 Parameters:
   PowertoolsTraceEnabled:
     Type: String
     Default: 'true'
-    AllowedValues: ['true', 'false']
-    Description: >
-      Set to 'false' for local emulators (e.g. floci/LocalStack) that don't
-      provide real X-Ray trace context, to silence Powertools Tracer's
-      "Missing AWS Lambda trace data" errors on every AWS SDK call.
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: |
+      Set to 'false' for local emulators (e.g. floci/LocalStack) that don't provide real X-Ray trace context, to silence Powertools Tracer's "Missing AWS Lambda trace data" errors on every AWS SDK call.
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -26,14 +25,19 @@ Globals:
       LogFormat: JSON
     Runtime: nodejs24.x
     Architectures:
-    - x86_64
+      - x86_64
   Api:
     TracingEnabled: true
+    Auth:
+      Authorizers:
+        InsuranceCognitoAuthorizer:
+          UserPoolArn: !GetAtt InsuranceUserPool.Arn
+      DefaultAuthorizer: InsuranceCognitoAuthorizer
 Resources:
   InsuranceUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub '${AWS::StackName}-InsuranceUserPool'
+      UserPoolName: !Sub ${AWS::StackName}-InsuranceUserPool
       UsernameAttributes:
         - email
       AutoVerifiedAttributes:
@@ -49,7 +53,7 @@ Resources:
   InsuranceUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: !Sub '${AWS::StackName}-InsuranceUserPoolClient'
+      ClientName: !Sub ${AWS::StackName}-InsuranceUserPoolClient
       UserPoolId: !Ref InsuranceUserPool
       GenerateSecret: false
       ExplicitAuthFlows:
@@ -59,7 +63,7 @@ Resources:
   QuotesTable:
     Type: AWS::Serverless::SimpleTable
     Properties:
-      TableName: !Sub '${AWS::StackName}-QuotesTable'
+      TableName: !Sub ${AWS::StackName}-QuotesTable
       PrimaryKey:
         Name: quoteId
         Type: String
@@ -96,14 +100,15 @@ Resources:
           POWERTOOLS_SERVICE_NAME: quotes
           POWERTOOLS_LOG_LEVEL: INFO
           POWERTOOLS_TRACE_ENABLED: !Ref PowertoolsTraceEnabled
-    Metadata: # Manage esbuild properties
+    Metadata:
+      # Manage esbuild properties
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
         Target: es2020
         Sourcemap: true
         EntryPoints:
-        - app.ts
+          - app.ts
 
   AuthFunction:
     Type: AWS::Serverless::Function
@@ -116,11 +121,15 @@ Resources:
           Properties:
             Path: /auth/signup
             Method: post
+            Auth:
+              Authorizer: NONE
         AuthLoginEvent:
           Type: Api
           Properties:
             Path: /auth/login
             Method: post
+            Auth:
+              Authorizer: NONE
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -144,7 +153,7 @@ Resources:
         Target: es2020
         Sourcemap: true
         EntryPoints:
-        - app.ts
+          - app.ts
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -152,7 +161,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   QuotesGetApi:
     Description: API Gateway endpoint URL for Prod stage for get Quotes function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/quotes/"
+    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/Prod/quotes/
   QuotesFunction:
     Description: Quotes Lambda Function ARN
     Value: !GetAtt QuotesFunction.Arn
